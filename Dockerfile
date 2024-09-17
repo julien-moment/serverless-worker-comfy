@@ -50,6 +50,11 @@ ARG MODEL_TYPE
 # Change working directory to ComfyUI
 WORKDIR /comfyui
 
+RUN mkdir models/checkpoints/SDXL;
+run mkdir models/checkpoints/SDXL/Lightning;
+run mkdir models/insightface;
+run mkdir models/facerestore_models/;
+
 # Download checkpoints/vae/LoRA to include in image based on model type
 RUN if [ "$MODEL_TYPE" = "sdxl" ]; then \
       wget -O models/checkpoints/sd_xl_base_1.0.safetensors https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors && \
@@ -64,7 +69,7 @@ RUN if [ "$MODEL_TYPE" = "sdxl" ]; then \
       wget -O models/controlnet/SDXL/diffusers_xl_depth_full.safetensors https://huggingface.co/lllyasviel/sd_control_collection/resolve/05cb13f62356f78d7c3a4ef10e460c5cda6bef8b/diffusers_xl_depth_full.safetensors && \
       wget -O models/loras/SDXL/tech_streetwear.safetensors https://civitai.com/api/download/models/166857?type=Model&format=SafeTensor && \
       wget -O models/insightface/inswapper_128.onnx https://github.com/facefusion/facefusion-assets/releases/download/models/inswapper_128.onnx && \
-      wget -O models/facerestore_models/GFPGANv1.4.pth https://github.com/TencentARC/GFPGAN/releases/download/v1.3.0/GFPGANv1.4.pth \
+      wget -O models/facerestore_models/GFPGANv1.4.pth https://github.com/TencentARC/GFPGAN/releases/download/v1.3.0/GFPGANv1.4.pth; \
     elif [ "$MODEL_TYPE" = "sd3" ]; then \
       wget --header="Authorization: Bearer ${HUGGINGFACE_ACCESS_TOKEN}" -O models/checkpoints/sd3_medium_incl_clips_t5xxlfp8.safetensors https://huggingface.co/stabilityai/stable-diffusion-3-medium/resolve/main/sd3_medium_incl_clips_t5xxlfp8.safetensors; \
     elif [ "$MODEL_TYPE" = "flux1-schnell" ]; then \

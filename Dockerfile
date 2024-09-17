@@ -61,9 +61,9 @@ RUN if [ "$MODEL_TYPE" = "sdxl" ]; then \
       wget -O custom_nodes/comfyui_controlnet_aux/ckpts/LiheYoung/Depth-Anything/checkpoints/depth_anything_vitb14.pth https://huggingface.co/spaces/LiheYoung/Depth-Anything/resolve/main/checkpoints/depth_anything_vitb14.pth && \
       wget --header="Authorization: Bearer ${HUGGINGFACE_ACCESS_TOKEN}" -O models/clip_vision/SD1.5/clipvisionSD1.5.safetensors https://huggingface.co/h94/IP-Adapter/resolve/main/models/image_encoder/model.safetensors && \
       wget -O models/ipadapter/ip-adapter-plus_sdxl_vit-h.safetensors https://huggingface.co/h94/IP-Adapter/resolve/main/sdxl_models/ip-adapter-plus_sdxl_vit-h.safetensors && \
-      wget -O m models/controlnet/SDXL/diffusers_xl_depth_full.safetensors https://huggingface.co/lllyasviel/sd_control_collection/resolve/05cb13f62356f78d7c3a4ef10e460c5cda6bef8b/diffusers_xl_depth_full.safetensors && \
+      wget -O models/controlnet/SDXL/diffusers_xl_depth_full.safetensors https://huggingface.co/lllyasviel/sd_control_collection/resolve/05cb13f62356f78d7c3a4ef10e460c5cda6bef8b/diffusers_xl_depth_full.safetensors && \
       wget -O models/loras/SDXL/tech_streetwear.safetensors https://civitai.com/api/download/models/166857?type=Model&format=SafeTensor && \
-      wget -0 models/insightface/inswapper_128.onnx https://github.com/facefusion/facefusion-assets/releases/download/models/inswapper_128.onnx && \
+      wget -O models/insightface/inswapper_128.onnx https://github.com/facefusion/facefusion-assets/releases/download/models/inswapper_128.onnx && \
       wget -O models/facerestore_models/GFPGANv1.4.pth https://github.com/TencentARC/GFPGAN/releases/download/v1.3.0/GFPGANv1.4.pth \
     elif [ "$MODEL_TYPE" = "sd3" ]; then \
       wget --header="Authorization: Bearer ${HUGGINGFACE_ACCESS_TOKEN}" -O models/checkpoints/sd3_medium_incl_clips_t5xxlfp8.safetensors https://huggingface.co/stabilityai/stable-diffusion-3-medium/resolve/main/sd3_medium_incl_clips_t5xxlfp8.safetensors; \

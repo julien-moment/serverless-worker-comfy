@@ -129,7 +129,11 @@
         const takePictureButton = document.getElementById('takePicture');
         const sendPictureButton = document.getElementById('sendPicture');
         const testApiButton = document.getElementById('testApi');
-       
+        const workflowTemplate = "/workflows/workflow_photobooth_runpod.json";
+        fetch('./workflows/workflow_photobooth_runpod.json')
+    .then((response) => response.json())
+    .then((json) => console.log(json));
+
         // Access the webcam
         navigator.mediaDevices.getUserMedia({ video: { aspectRatio: 3/4 } }) // Set the aspect ratio to portrait (3:4)
         .then(stream => {
@@ -152,7 +156,8 @@
         });
 
 
-        let multiLineWorkflow = `{
+        let multiLineWorkflow = `
+{
   "20": {
     "inputs": {
       "ckpt_name": ""
@@ -599,11 +604,13 @@
         sendPictureButton.addEventListener('click', () => {
             const dataUrl = canvas.toDataURL('image/png');
             const base64Image = dataUrl.split(',')[1]; // Extract base64 part
-
+			console.log(multiLineWorkflow)
+			
             const payload = {
-               workflow: multiLineWorkflow,
-               images:[ { name:"bave-pictures-3JOsg05HeB4-unsplash (1).jpg", image:base64Image } ]
-
+				input: {
+					workflow: multiLineWorkflow,
+					images:[ { name:"bave-pictures-3JOsg05HeB4-unsplash (1).jpg", image:base64Image } ]
+				}
             };
 
             fetch('https://api.runpod.ai/v2/r6ejqp3mj63xkj/runsync', {

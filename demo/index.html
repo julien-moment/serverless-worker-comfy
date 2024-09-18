@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MF AI Photobooth</title>
+    <style>
+        /* Global Styles */
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #000;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            background-color: #121212;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            max-width: 600px;
+        }
+
+        h1 {
+            margin-bottom: 30px;
+            font-size: 28px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #f8f8f8;
+        }
+
+        video, canvas, img {
+            width: 100%;
+            max-height: 480px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 2px solid #fff;
+        }
+
+        button {
+            padding: 15px 30px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 5px;
+            background-color: #FFD700; /* Yellow accent */
+            color: black;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+
+        button.test-api {
+            background-color: #333;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 400;
+            margin-top: 20px;
+        }
+
+        button:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+        }
+
+        button:hover:enabled {
+            background-color: #f1c40f;
+            transform: scale(1.05);
+        }
+
+        button.test-api:hover {
+            background-color: #444;
+        }
+
+        /* Responsive Styles */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 24px;
+            }
+            video, canvas, img {
+                max-height: 360px;
+            }
+            button {
+                font-size: 16px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 20px;
+            }
+            video, canvas, img {
+                max-height: 300px;
+            }
+            button {
+                font-size: 14px;
+                padding: 12px 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>MF AI Photobooth</h1>
+        <video id="video" autoplay></video>
+        <canvas id="canvas" style="display: none;"></canvas>
+        <img id="photo" alt="Your photo will appear here" style="display:none;" />
+        <button id="takePicture">TAKE PICTURE</button>
+        <button id="sendPicture" disabled>SEND TO SERVER</button>
+        <button id="testApi" class="test-api">TEST API</button>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const photo = document.getElementById('photo');
+        const takePictureButton = document.getElementById('takePicture');
+        const sendPictureButton = document.getElementById('sendPicture');
+        const testApiButton = document.getElementById('testApi');
+
+        // Access the webcam
+        navigator.mediaDevices.getUserMedia({ video: { aspectRatio: 3/4 } }) // Set the aspect ratio to portrait (3:4)
+        .then(stream => {
+            video.srcObject = stream;
+        })
+        .catch(err => {
+            console.error("Error accessing the webcam: ", err);
+        });
+
+        // Capture the image when TAKE PICTURE is clicked
+        takePictureButton.addEventListener('click', () => {
+            const context = canvas.getContext('2d');
+            canvas.width = 480;  // Set the width and height for portrait format
+            canvas.height = 640;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const data = canvas.toDataURL('image/png');
+            photo.setAttribute('src', data);  // Show the captured image
+            photo.style.display = 'block';
+            sendPictureButton.disabled = false;
+        });
+
+        // Function to send the photo to the server
+        sendPictureButton.addEventListener('click', () => {
+            const dataUrl = canvas.toDataURL('image/png');
+            const base64Image = dataUrl.split(',')[1]; // Extract base64 part
+
+            const payload = {
+                input: {
+                    workflow: {
+                        "195": {
+                            "inputs": {
+                                "image": base64Image
+                            },
+                            "class_type": "ETN_LoadImageBase64",
+                            "_meta": {
+                                "title": "Load Image (Base64)"
+                            }
+                        }
+                    }
+                }
+            };
+
+            fetch('https://api.runpod.ai/v2/ad8iul52hfnzcc/runsync', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer [MYIDTOKEN]' // Replace with your token
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.output && data.output.message) {
+                    photo.setAttribute('src', `data:image/png;base64,${data.output.message}`);
+                    photo.style.display = 'block';
+                } else {
+                    console.error("Unexpected response format:", data);
+                }
+            })
+            .catch((error) => {
+                console.error("Error:", error);
+            });
+        });
+
+        // Function to test the API with the provided payload
+        testApiButton.addEventListener('click', () => {
+            const testPayload = {
+                "input": {
+                    "workflow": {
+                        "3": {
+                            "inputs": {
+                                "seed": 1337,
+                                "steps": 30,
+                                "cfg": 8,
+                                "sampler_name": "euler",
+                                "scheduler": "normal",
+                                "denoise": 1,
+                                "model": ["4", 0],
+                                "positive": ["6", 0],
+                                "negative": ["7", 0],
+                                "latent_image": ["5", 0]
+                            },
+                            "class_type": "KSampler"
+                        },
+                        "4": {
+                            "inputs": {
+                                "ckpt_name": "sd_xl_base_1.0.safetensors"
+                            },
+                            "class_type": "CheckpointLoaderSimple"
+                        },
+                        "5": {
+                            "inputs": {
+                                "width": 1024,
+                                "height": 1024,
+                                "batch_size": 1
+                            },
+                            "class_type": "EmptyLatentImage"
+                        },
+                        "6": {
+                            "inputs": {
+                                "text": "beautiful scenery nature glass bottle landscape, purple galaxy bottle,",
+                                "clip": ["4", 1]
+                            },
+                            "class_type": "CLIPTextEncode"
+                        },
+                        "7": {
+                            "inputs": {
+                                "text": "text, watermark",
+                                "clip": ["4", 1]
+                            },
+                            "class_type": "CLIPTextEncode"
+                        },
+                        "8": {
+                            "inputs": {
+                                "samples": ["3", 0],
+                                "vae": ["4", 2]
+                            },
+                            "class_type": "VAEDecode"
+                        },
+                        "9": {
+                            "inputs": {
+                                "filename_prefix": "ComfyUI",
+                                "images": ["8", 0]
+                            },
+                            "class_type": "SaveImage"
+                        }
+                    }
+                }
+            };
+
+            fetch('https://api.runpod.ai/v2/ad8iul52hfnzcc/runsync', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer LPQ8PCDK88QLIL5WT74GX97DB9F7KA1OKY1EFDRF' // Replace with your token
+                },
+                body: JSON.stringify(testPayload)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.output && data.output.message) {
+                    photo.setAttribute('src', `data:image/png;base64,${data.output.message}`);
+                    photo.style.display = 'block';
+                } else {
+                    console.error("Unexpected response format:", data);
+                }
+            })
+            .catch((error) => {
+                console.error("Error:", error);
+            });
+        });
+    </script>
+</body>
+</html>

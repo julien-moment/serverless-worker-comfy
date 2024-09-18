@@ -129,11 +129,7 @@
         const takePictureButton = document.getElementById('takePicture');
         const sendPictureButton = document.getElementById('sendPicture');
         const testApiButton = document.getElementById('testApi');
-        const workflowTemplate = "/workflows/workflow_photobooth_runpod.json";
-        fetch('./workflows/workflow_photobooth_runpod.json')
-    .then((response) => response.json())
-    .then((json) => console.log(json));
-
+       
         // Access the webcam
         navigator.mediaDevices.getUserMedia({ video: { aspectRatio: 3/4 } }) // Set the aspect ratio to portrait (3:4)
         .then(stream => {

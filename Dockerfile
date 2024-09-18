@@ -73,7 +73,7 @@ RUN wget -O models/facerestore_models/GFPGANv1.4.pth https://github.com/TencentA
 
 COPY ./models/loras/SDXL /comfyui/models/loras/SDXL
 
-RUN cd custom_nodes && git clone https://github.com/ltdrdata/ComfyUI-Impact-Pack && python3 install.py
+RUN cd custom_nodes && git clone https://github.com/ltdrdata/ComfyUI-Impact-Pack && cd ComfyUI-Impact-Pack && python3 install.py
 RUN cd custom_nodes && git clone https://github.com/cubiq/ComfyUI_IPAdapter_plus 
 RUN cd custom_nodes && git clone https://github.com/pikenrover/ComfyUI_PRNodes
 

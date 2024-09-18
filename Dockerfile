@@ -1,5 +1,5 @@
 # Stage 1: Base image with common dependencies
-FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04 as base
+FROM nvidia/cuda:12.2.2-cudnn8-runtime-ubuntu22.04 as base
 
 # Prevents prompts from packages asking for user input during installation
 ENV DEBIAN_FRONTEND=noninteractive
@@ -13,7 +13,8 @@ RUN apt-get update && apt-get install -y \
     python3.10 \
     python3-pip \
     git \
-    wget
+    wget \
+    libgl1 libgl1-mesa-glx libglib2.0-0
 
 # Clean up to reduce image size
 RUN apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
@@ -79,15 +80,35 @@ RUN echo "Done"
 
 #instal custom nodes  
 RUN echo "Installing custom nodes..." 
-RUN cd custom_nodes && git clone https://github.com/ltdrdata/ComfyUI-Impact-Pack.git && cd ComfyUI-Impact-Pack && python3 install.py
-#RUN cd custom_nodes && git clone https://github.com/Fannovel16/comfy_controlnet_preprocessors && cd comfy_controlnet_preprocessors && python install.py --no_download_ckpts 
-RUN echo "Done"   
+
+RUN cd custom_nodes && git clone https://github.com/ltdrdata/ComfyUI-Impact-Pack
+RUN cd custom_nodes && git clone https://github.com/cubiq/ComfyUI_IPAdapter_plus
+RUN cd custom_nodes && git clone https://github.com/pikenrover/ComfyUI_PRNodes
+
+# has to be separate
+RUN cd custom_nodes && git clone https://github.com/Fannovel16/comfyui_controlnet_aux
+RUN mkdir -p custom_nodes/comfyui_controlnet_aux/ckpts/LiheYoung/Depth-Anything/checkpoints
+RUN wget -O custom_nodes/comfyui_controlnet_aux/ckpts/LiheYoung/Depth-Anything/checkpoints/depth_anything_vitb14.pth https://huggingface.co/spaces/LiheYoung/Depth-Anything/resolve/main/checkpoints/depth_anything_vitb14.pth
+
+RUN cd custom_nodes && git clone https://github.com/Gourieff/comfyui-reactor-node
+RUN cd custom_nodes/comfyui-reactor-node && python3 install.py
+RUN cd custom_nodes && git clone https://github.com/Acly/comfyui-tooling-nodes
+RUN cd custom_nodes && git clone https://github.com/pythongosssss/ComfyUI-Custom-Scripts
+RUN cd custom_nodes && git clone https://github.com/ltdrdata/ComfyUI-Manager
+RUN cd custom_nodes && git clone https://github.com/Seedsa/Fooocus_Nodes
 
 # Stage 3: Final image
 FROM base as final
 
+ENV COMFYUI_PATH=/comfyui
+ENV COMFYUI_MODEL_PATH=/comfyui/models
+
 # Copy models from stage 2 to the final image
 COPY --from=downloader /comfyui/models /comfyui/models
+COPY --from=downloader /comfyui/custom_nodes /comfyui/custom_nodes
+
+RUN pip uninstall -y opencv-python opencv-contrib-python opencv-python-headless
+RUN pip install opencv-python==4.7.0.72
 
 # Start the container
 CMD /start.sh

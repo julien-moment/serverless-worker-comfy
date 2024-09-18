@@ -172,14 +172,14 @@
         sendPictureButton.addEventListener('click', () => {
             const dataUrl = canvas.toDataURL('image/png');
             const base64Image = dataUrl.split(',')[1]; // Extract base64 part
-            console.log(multiLineWorkflow)
-
+            
             const payload = {
-                input: {
-                    workflow: multiLineWorkflow,
-                    images: [{ name: "bave-pictures-3JOsg05HeB4-unsplash (1).jpg", image: base64Image }]
-                }
+              input: {
+                workflow: multiLineWorkflow,
+                images: [{ name: "bave-pictures-3JOsg05HeB4-unsplash (1).jpg", image: base64Image }]
+              }
             };
+            console.log(JSON.stringify(payload))
 
             fetch('https://api.runpod.ai/v2/r6ejqp3mj63xkj/runsync', {
                 method: 'POST',

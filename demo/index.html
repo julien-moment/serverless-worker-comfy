@@ -172,11 +172,11 @@
                 }
             };
 
-            fetch('https://api.runpod.ai/v2/ad8iul52hfnzcc/runsync', {
+            fetch('http://mf-pc-175.momentfactory.local:8000/runsync', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': 'Bearer [MYIDTOKEN]' // Replace with your token
+                    'Authorization': 'Bearer LPQ8PCDK88QLIL5WT74GX97DB9F7KA1OKY1EFDRF' // Replace with your token
                 },
                 body: JSON.stringify(payload)
             })
@@ -216,7 +216,7 @@
                         },
                         "4": {
                             "inputs": {
-                                "ckpt_name": "sd_xl_base_1.0.safetensors"
+                                "ckpt_name": "dreamshaperXL_lightningDPMSDE.safetensors"
                             },
                             "class_type": "CheckpointLoaderSimple"
                         },
@@ -260,7 +260,7 @@
                 }
             };
 
-            fetch('https://api.runpod.ai/v2/ad8iul52hfnzcc/runsync', {
+            fetch('http://mf-pc-175.momentfactory.local:8000/runsync', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

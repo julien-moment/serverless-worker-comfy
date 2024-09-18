@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MF AI Photobooth</title>
+    <title>MF AI Photobooth 2</title>
     <style>
         /* Global Styles */
         body {
@@ -16,6 +16,7 @@
             align-items: center;
             height: 100vh;
             margin: 0;
+            position: relative; /* Pour positionner le lien "TEST API" */
         }
 
         .container {
@@ -42,13 +43,62 @@
 
         video,
         canvas,
-        img {
+        img,
+        .loading-container {
             width: 100%;
             max-height: 480px;
             object-fit: cover;
             border-radius: 8px;
             margin-bottom: 20px;
             border: 2px solid #fff;
+        }
+
+        /* Loading Animation and Processing Text */
+        .loading-container {
+            display: none; /* Masqué par défaut */
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .processing-text {
+            font-size: 18px;
+            margin-bottom: 10px;
+            animation: blink 1.5s infinite;
+            color: #FFD700; /* Couleur dorée pour correspondre au thème */
+        }
+
+        @keyframes blink {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        .loading {
+            border: 8px solid #f3f3f3;
+            border-top: 8px solid #FFD700;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         button {
@@ -66,14 +116,6 @@
             transition: background-color 0.3s, transform 0.2s;
         }
 
-        button.test-api {
-            background-color: #333;
-            color: #fff;
-            font-size: 14px;
-            font-weight: 400;
-            margin-top: 20px;
-        }
-
         button:disabled {
             background-color: #555;
             cursor: not-allowed;
@@ -84,8 +126,29 @@
             transform: scale(1.05);
         }
 
-        button.test-api:hover {
-            background-color: #444;
+        /* Lien TEST API stylisé */
+        .test-api-link {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            font-size: 14px;
+            color: #fff;
+            text-decoration: underline;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.3s;
+        }
+
+        .test-api-link:hover {
+            opacity: 1;
+        }
+
+        /* Styles pour delayTime et executionTime */
+        .timing-info {
+            margin-top: 10px;
+            font-size: 16px;
+            color: #f1c40f; /* Couleur dorée pour la visibilité */
+            display: none; /* Masqué par défaut */
         }
 
         /* Responsive Styles */
@@ -96,12 +159,21 @@
 
             video,
             canvas,
-            img {
+            img,
+            .loading-container {
                 max-height: 360px;
             }
 
             button {
                 font-size: 16px;
+            }
+
+            .test-api-link {
+                font-size: 12px;
+            }
+
+            .timing-info {
+                font-size: 14px;
             }
         }
 
@@ -112,7 +184,8 @@
 
             video,
             canvas,
-            img {
+            img,
+            .loading-container {
                 max-height: 300px;
             }
 
@@ -120,91 +193,157 @@
                 font-size: 14px;
                 padding: 12px 24px;
             }
+
+            .test-api-link {
+                font-size: 10px;
+            }
+
+            .timing-info {
+                font-size: 12px;
+            }
         }
     </style>
 </head>
 
 <body>
     <div class="container">
-        <h1>MF AI Photobooth</h1>
+        <h1>MF AI Photobooth 2</h1>
         <video id="video" autoplay></video>
         <canvas id="canvas" style="display: none;"></canvas>
+        <!-- Conteneur pour le texte "Processing..." et l'animation de chargement -->
+        <div id="loadingContainer" class="loading-container">
+            <div class="processing-text">Processing...</div>
+            <div id="loading" class="loading"></div> <!-- Loading animation -->
+        </div>
         <img id="photo" alt="Your photo will appear here" style="display:none;" />
+        <!-- Conteneurs pour delayTime et executionTime -->
+        <div id="timingInfo" class="timing-info" aria-live="polite">
+            <p id="delayTime">Delay Time: </p>
+            <p id="executionTime">Execution Time: </p>
+        </div>
         <button id="takePicture">TAKE PICTURE</button>
         <button id="sendPicture" disabled>SEND TO SERVER</button>
-        <button id="testApi" class="test-api">TEST API</button>
     </div>
+
+    <!-- Lien TEST API -->
+    <a href="#" id="testApi" class="test-api-link">TEST API</a>
 
     <script>
         const video = document.getElementById('video');
         const canvas = document.getElementById('canvas');
         const photo = document.getElementById('photo');
+        const loadingContainer = document.getElementById('loadingContainer'); // Conteneur de chargement
+        const timingInfo = document.getElementById('timingInfo'); // Conteneur pour timing
+        const delayTimeElem = document.getElementById('delayTime');
+        const executionTimeElem = document.getElementById('executionTime');
         const takePictureButton = document.getElementById('takePicture');
         const sendPictureButton = document.getElementById('sendPicture');
-        const testApiButton = document.getElementById('testApi');
+        const testApiLink = document.getElementById('testApi'); // Lien TEST API
 
-        // Access the webcam
-        navigator.mediaDevices.getUserMedia({ video: { aspectRatio: 3 / 4 } }) // Set the aspect ratio to portrait (3:4)
+        // Accéder à la webcam
+        navigator.mediaDevices.getUserMedia({ video: { aspectRatio: 3 / 4 } }) // Définir le ratio d'aspect en portrait (3:4)
             .then(stream => {
                 video.srcObject = stream;
             })
             .catch(err => {
-                console.error("Error accessing the webcam: ", err);
+                console.error("Erreur lors de l'accès à la webcam : ", err);
+                alert("Erreur lors de l'accès à la webcam. Veuillez vérifier vos paramètres de caméra.");
             });
 
-        // Capture the image when TAKE PICTURE is clicked
+        // Capturer l'image lorsque TAKE PICTURE est cliqué
         takePictureButton.addEventListener('click', () => {
             const context = canvas.getContext('2d');
-            canvas.width = 480;  // Set the width and height for portrait format
+            canvas.width = 480;  // Définir la largeur et la hauteur pour le format portrait
             canvas.height = 640;
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
             const data = canvas.toDataURL('image/png');
-            photo.setAttribute('src', data);  // Show the captured image
+            photo.setAttribute('src', data);  // Afficher l'image capturée
             photo.style.display = 'block';
+            // Masquer les informations de timing si elles étaient affichées précédemment
+            timingInfo.style.display = 'none';
+            timingInfo.classList.remove('show');
             sendPictureButton.disabled = false;
         });
 
-
+        // Remplacer cette ligne par votre workflow JSON réel
         const multiLineWorkflow = JSON.parse(`{  "20": {    "inputs": {      "ckpt_name": "SDXL/Lightning/dreamshaperXL_lightningDPMSDE.safetensors"    },    "class_type": "CheckpointLoaderSimple",    "_meta": {      "title": "Load Checkpoint"    }  },  "44": {    "inputs": {      "add_noise": "enable",      "noise_seed": [        "71",        0      ],      "steps": 7,      "cfg": 2,      "sampler_name": "ddpm",      "scheduler": "karras",      "start_at_step": 0,      "end_at_step": 7,      "return_with_leftover_noise": "disable",      "model": [        "204",        0      ],      "positive": [        "88",        0      ],      "negative": [        "88",        1      ],      "latent_image": [        "60",        0      ]    },    "class_type": "KSamplerAdvanced",    "_meta": {      "title": "KSampler (Advanced)"    }  },  "49": {    "inputs": {      "samples": [        "44",        0      ],      "vae": [        "20",        2      ]    },    "class_type": "VAEDecode",    "_meta": {      "title": "VAE Decode"    }  },  "57": {    "inputs": {      "text": "Photorealistic, highly detailed, human wearing avant-garde high-fashion outfits, edgy aesthetic, coloured lighting, complex draping and layering techniques, grunge-inspired asymmetrical and voluminous silhouette, urban tech wear, jacket, gloves, light integration, neo-futuristic high fashion inspired by electronic music cultures, outfit, advanced material, innovative materials and designs, lights embedded in fabric, cutting-edge technology and light in the fabric and accessories, vivid background, lighting with strong shadows, dramatic lighting, hyperrealistic, moody colored lighting, color saturation, cinematique, 4k, high contrast,",      "clip": [        "20",        1      ]    },    "class_type": "CLIPTextEncode",    "_meta": {      "title": "Positive Prompt"    }  },  "58": {    "inputs": {      "text": "NSFW, (worst quality:2),(low quality:2),(normal quality:2),lowres,bad anatomy,bad hands,normal quality,((monochrome)),((grayscale)) watermark,nsfw, ng_deepnegative_v1_75t,bad_pictures,negative_hand-neg,easynegative,verybadimagenegative_v1.3,bad-hands-5,(:1.3),(badhandv4:1.2), low detail, blurry, blurry_image, Lowres, Low_resolution, Low_picture_quality, Low_picture_anime, extra_anatomy, extra_body, extra_navel, extra_face, extra_eyes, extra_chest, nipples, extra_hips, extra_arms, extra_hands, extra_fingers, extra_legs, extra_feet, extra_toe, missing_anatomy, missing_body, missing_face, missing_eyes,  sketch, sketching, (worst quality: 2), (low quality:2), ((monochrome)), ((grayscale)), inpainting, HDR, bad_prompt_version2, jpeg artifacts, signature, watermark, text, error, missing fingers",      "clip": [        "20",        1      ]    },    "class_type": "CLIPTextEncode",    "_meta": {      "title": "Negative Prompt"    }  },  "60": {    "inputs": {      "width": [        "62",        0      ],      "height": [        "62",        1      ],      "batch_size": 1    },    "class_type": "EmptyLatentImage",    "_meta": {      "title": "Empty Latent Image"    }  },  "62": {    "inputs": {      "resolution": "768x1344"    },    "class_type": "CM_SDXLResolution",    "_meta": {      "title": "SDXLResolution"    }  },  "71": {    "inputs": {      "seed": -1    },    "class_type": "Seed (rgthree)",    "_meta": {      "title": "Seed (rgthree)"    }  },  "88": {    "inputs": {      "strength": 1,      "start_percent": 0,      "end_percent": 0.5,      "positive": [        "57",        0      ],      "negative": [        "58",        0      ],      "control_net": [        "89",        0      ],      "image": [        "228",        0      ]    },    "class_type": "ControlNetApplyAdvanced",    "_meta": {      "title": "Apply ControlNet (Advanced)"    }  },  "89": {    "inputs": {      "control_net_name": "SDXL/diffusers_xl_depth_full.safetensors"    },    "class_type": "ControlNetLoader",    "_meta": {      "title": "Load ControlNet Model"    }  },  "95": {    "inputs": {      "enabled": true,      "swap_model": "inswapper_128.onnx",      "facedetection": "YOLOv5n",      "face_restore_model": "GFPGANv1.4.pth",      "face_restore_visibility": 1,      "codeformer_weight": 0.9,      "detect_gender_input": "no",      "detect_gender_source": "no",      "input_faces_index": "0,1,2,3,4,5,6,7",      "source_faces_index": "0,1,2,3,4,5,6,7",      "console_log_level": 1,      "input_image": [        "49",        0      ],      "source_image": [        "242",        0      ]    },    "class_type": "ReActorFaceSwap",    "_meta": {      "title": "ReActor 🌌 Fast Face Swap"    }  },  "130": {    "inputs": {      "ipadapter_file": "ip-adapter-plus_sdxl_vit-h.safetensors"    },    "class_type": "IPAdapterModelLoader",    "_meta": {      "title": "IPAdapter Model Loader"    }  },  "131": {    "inputs": {      "clip_name": "SD1.5/clipvisionSD1.5.safetensors"    },    "class_type": "CLIPVisionLoader",    "_meta": {      "title": "Load CLIP Vision"    }  },  "133": {    "inputs": {      "model_name": "bbox/face_yolov8m.pt"    },    "class_type": "UltralyticsDetectorProvider",    "_meta": {      "title": "UltralyticsDetectorProvider"    }  },  "154": {    "inputs": {      "threshold": 0.5,      "dilation": 4,      "bbox_detector": [        "133",        0      ],      "image": [        "242",        0      ]    },    "class_type": "BboxDetectorCombined_v2",    "_meta": {      "title": "BBOX Detector (combined)"    }  },  "195": {    "inputs": {      "image": ""    },    "class_type": "ETN_LoadImageBase64",    "_meta": {      "title": "Load Image (Base64)"    }  },  "204": {    "inputs": {      "weight": 1,      "weight_type": "linear",      "combine_embeds": "average",      "start_at": 0,      "end_at": 1,      "embeds_scaling": "V only",      "model": [        "216",        0      ],      "ipadapter": [        "130",        0      ],      "image": [        "242",        0      ],      "attn_mask": [        "154",        0      ],      "clip_vision": [        "131",        0      ]    },    "class_type": "IPAdapterAdvanced",    "_meta": {      "title": "IPAdapter Advanced"    }  },  "216": {    "inputs": {      "lora_name": "SDXL/tech_streetwear.safetensors",      "strength_model": 0.5,      "model": [        "248",        0      ]    },    "class_type": "LoraLoaderModelOnly",    "_meta": {      "title": "LoraLoaderModelOnly"    }  },  "228": {    "inputs": {      "ckpt_name": "depth_anything_vitb14.pth",      "resolution": 1088,      "image": [        "242",        0      ]    },    "class_type": "DepthAnythingPreprocessor",    "_meta": {      "title": "Depth Anything"    }  },  "242": {    "inputs": {      "image": "bave-pictures-3JOsg05HeB4-unsplash (1).jpg",      "upload": "image"    },    "class_type": "LoadImage",    "_meta": {      "title": "Load Image"    }  },  "247": {    "inputs": {      "image": "momentfactory_Create_a_photorealistic_highly_detailed_and_imagi_40d59b67-ea7f-4537-9947-49d1a01ef8d0 copy_e.png",      "upload": "image"    },    "class_type": "LoadImage",    "_meta": {      "title": "Load Image"    }  },  "248": {    "inputs": {      "weight_style": 1.8,      "weight_composition": 0.9,      "expand_style": false,      "combine_embeds": "average",      "start_at": 0,      "end_at": 1,      "embeds_scaling": "V only",      "model": [        "20",        0      ],      "ipadapter": [        "130",        0      ],      "image_style": [        "268",        0      ],      "image_composition": [        "242",        0      ],      "clip_vision": [        "131",        0      ]    },    "class_type": "IPAdapterStyleComposition",    "_meta": {      "title": "IPAdapter Style & Composition SDXL"    }  },  "255": {    "inputs": {      "image": "inspiration-gray.png",      "upload": "image"    },    "class_type": "LoadImage",    "_meta": {      "title": "Load Image"    }  },  "268": {    "inputs": {      "Input": [        "309",        0      ],      "image1": [        "247",        0      ],      "image2": [        "255",        0      ],      "image3": [        "269",        0      ],      "image4": [        "270",        0      ]    },    "class_type": "CR Image Input Switch (4 way)",    "_meta": {      "title": "🔀 CR Image Input Switch (4 way)"    }  },  "269": {    "inputs": {      "image": "2person-yellow.png",      "upload": "image"    },    "class_type": "LoadImage",    "_meta": {      "title": "Load Image"    }  },  "270": {    "inputs": {      "image": "pink-black-2person.png",      "upload": "image"    },    "class_type": "LoadImage",    "_meta": {      "title": "Load Image"    }  },  "309": {    "inputs": {      "expression": "a%4+1",      "a": [        "71",        0      ]    },    "class_type": "MathExpression|pysssss",    "_meta": {      "title": "Math Expression 🐍"    }  },  "320": {    "inputs": {      "filename_prefix": "test",      "images": [        "95",        0      ]    },    "class_type": "SaveImage",    "_meta": {      "title": "Save Image"    }  } }`)
 
-
-        // Function to send the photo to the server
+        // Fonction pour envoyer la photo au serveur
         sendPictureButton.addEventListener('click', () => {
-            const dataUrl = canvas.toDataURL('image/png');
-            const base64Image = dataUrl.split(',')[1]; // Extract base64 part
-            
-            const payload = {
-              input: {
+        const dataUrl = canvas.toDataURL('image/png');
+        const base64Image = dataUrl.split(',')[1]; // Extraire la partie base64
+
+        // Masquer la photo et afficher le conteneur de chargement
+        photo.style.display = 'none';
+        loadingContainer.style.display = 'flex'; // Afficher "Processing..." et le spinner
+        // Masquer les informations de timing pendant le traitement
+        timingInfo.style.display = 'none';
+        timingInfo.classList.remove('show');
+
+        // **Désactiver le bouton SEND TO SERVER**
+        sendPictureButton.disabled = true;
+
+        const payload = {
+            input: {
                 workflow: multiLineWorkflow,
                 images: [{ name: "bave-pictures-3JOsg05HeB4-unsplash (1).jpg", image: base64Image }]
-              }
-            };
-            console.log(JSON.stringify(payload))
+            }
+        };
 
-            fetch('https://api.runpod.ai/v2/r6ejqp3mj63xkj/runsync', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer LPQ8PCDK88QLIL5WT74GX97DB9F7KA1OKY1EFDRF' // Replace with your token
-                },
-                body: JSON.stringify(payload)
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data && data.output && data.output.message) {
-                        photo.setAttribute('src', `data:image/png;base64,${data.output.message}`);
-                        photo.style.display = 'block';
-                    } else {
-                        console.error("Unexpected response format:", data);
+        fetch('https://api.runpod.ai/v2/r6ejqp3mj63xkj/runsync', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer LPQ8PCDK88QLIL5WT74GX97DB9F7KA1OKY1EFDRF' // Remplacez par votre token
+            },
+            body: JSON.stringify(payload)
+        })
+            .then(response => response.json())
+            .then(data => {
+                // Masquer le conteneur de chargement et afficher l'image reçue du serveur
+                loadingContainer.style.display = 'none';
+
+                if (data && data.output && data.output.message) {
+                    photo.setAttribute('src', `data:image/png;base64,${data.output.message}`);
+                    photo.style.display = 'block';
+                } else {
+                    console.error("Format de réponse inattendu :", data);
+                    alert("Réponse inattendue du serveur.");
+                }
+
+                // Vérifier et afficher delayTime et executionTime si présents
+                if (data) {
+                    const delayTimeMs = data.delayTime;
+                    const executionTimeMs = data.executionTime;
+
+                    if (delayTimeMs !== undefined && executionTimeMs !== undefined) {
+                        const delayTimeSec = (delayTimeMs / 1000).toFixed(2);
+                        const executionTimeSec = (executionTimeMs / 1000).toFixed(2);
+
+                        delayTimeElem.textContent = `Delay Time: ${delayTimeSec} seconds`;
+                        executionTimeElem.textContent = `Execution Time: ${executionTimeSec} seconds`;
+                        timingInfo.style.display = 'block';
+                        timingInfo.classList.add('show');
                     }
-                })
-                .catch((error) => {
-                    console.error("Error:", error);
-                });
+                }
+
+                // **Réactiver le bouton SEND TO SERVER**
+                sendPictureButton.disabled = false;
+            })
+            .catch((error) => {
+                console.error("Erreur :", error);
+                loadingContainer.style.display = 'none'; // Masquer le chargement en cas d'erreur
+                alert("Une erreur s'est produite lors de l'envoi de la photo. Veuillez réessayer.");
+
+                // **Réactiver le bouton SEND TO SERVER même en cas d'erreur**
+                sendPictureButton.disabled = false;
+            });
         });
 
-        // Function to test the API with the provided payload
-        testApiButton.addEventListener('click', () => {
+        // Fonction pour tester l'API avec la charge utile fournie
+        testApiLink.addEventListener('click', (event) => {
+            event.preventDefault(); // Empêcher le comportement par défaut du lien
+
             const testPayload = {
                 "input": {
                     "workflow": {
@@ -269,25 +408,60 @@
                 }
             };
 
+            // Masquer la photo et afficher le conteneur de chargement
+            photo.style.display = 'none';
+            loadingContainer.style.display = 'flex'; // Afficher "Processing..." et le spinner
+            timingInfo.style.display = 'none'; // Masquer les informations de timing pendant le traitement
+
+            // **Désactiver le bouton SEND TO SERVER (optionnel, si nécessaire)**
+            sendPictureButton.disabled = true;
+
             fetch('https://api.runpod.ai/v2/ad8iul52hfnzcc/runsync', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': 'Bearer LPQ8PCDK88QLIL5WT74GX97DB9F7KA1OKY1EFDRF' // Replace with your token
+                    'Authorization': 'Bearer LPQ8PCDK88QLIL5WT74GX97DB9F7KA1OKY1EFDRF' // Remplacez par votre token
                 },
                 body: JSON.stringify(testPayload)
             })
                 .then(response => response.json())
                 .then(data => {
+                    // Masquer le conteneur de chargement et afficher l'image reçue du serveur
+                    loadingContainer.style.display = 'none';
+
                     if (data && data.output && data.output.message) {
                         photo.setAttribute('src', `data:image/png;base64,${data.output.message}`);
                         photo.style.display = 'block';
                     } else {
-                        console.error("Unexpected response format:", data);
+                        console.error("Format de réponse inattendu :", data);
+                        alert("Réponse inattendue du serveur.");
                     }
+
+                    // Vérifier et afficher delayTime et executionTime si présents
+                    if (data) {
+                        const delayTimeMs = data.delayTime;
+                        const executionTimeMs = data.executionTime;
+
+                        if (delayTimeMs !== undefined && executionTimeMs !== undefined) {
+                            const delayTimeSec = (delayTimeMs / 1000).toFixed(2);
+                            const executionTimeSec = (executionTimeMs / 1000).toFixed(2);
+
+                            delayTimeElem.textContent = `Delay Time: ${delayTimeSec} seconds`;
+                            executionTimeElem.textContent = `Execution Time: ${executionTimeSec} seconds`;
+                            timingInfo.style.display = 'block';
+                        }
+                    }
+
+                    // **Réactiver le bouton SEND TO SERVER (optionnel)**
+                    sendPictureButton.disabled = false;
                 })
                 .catch((error) => {
-                    console.error("Error:", error);
+                    console.error("Erreur :", error);
+                    loadingContainer.style.display = 'none'; // Masquer le chargement en cas d'erreur
+                    alert("Une erreur s'est produite lors du test de l'API. Veuillez réessayer.");
+
+                    // **Réactiver le bouton SEND TO SERVER même en cas d'erreur (optionnel)**
+                    sendPictureButton.disabled = false;
                 });
         });
     </script>

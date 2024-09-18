@@ -7,3 +7,4 @@ simulated_uploaded
 __pycache__
 README.sublime-workspace
 ._.DS_Store
+output/

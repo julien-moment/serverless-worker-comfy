@@ -72,22 +72,25 @@ RUN wget -O models/insightface/inswapper_128.onnx https://github.com/facefusion/
 RUN wget -O models/facerestore_models/GFPGANv1.4.pth https://github.com/TencentARC/GFPGAN/releases/download/v1.3.0/GFPGANv1.4.pth
 
 
-RUN git clone https://github.com/ltdrdata/ComfyUI-Impact-Pack custom_nodes/ComfyUI-Impact-Pack
+RUN cd custom_nodes && git clone https://github.com/ltdrdata/ComfyUI-Impact-Pack
 #RUN git clone https://github.com/Seedsa/Fooocus_Nodes custom_nodes/Fooocus_Nodes
-RUN git clone https://github.com/cubiq/ComfyUI_IPAdapter_plus custom_nodes/ComfyUI_IPAdapter_plus
+RUN cd custom_nodes && git clone https://github.com/cubiq/ComfyUI_IPAdapter_plus
 
-RUN git clone https://github.com/Gourieff/comfyui-reactor-node custom_nodes/comfyui-reactor-node
+RUN cd custom_nodes && git clone https://github.com/Gourieff/comfyui-reactor-node
 RUN cd custom_nodes/comfyui-reactor-node && python3 install.py
 
-RUN git clone https://github.com/pikenrover/ComfyUI_PRNodes custom_nodes/ComfyUI_PRNodes
+RUN cd custom_nodes && git clone https://github.com/pikenrover/ComfyUI_PRNodes
 
 # has to be separate
-RUN git clone https://github.com/Fannovel16/comfyui_controlnet_aux custom_nodes/comfyui_controlnet_aux
+RUN cd custom_nodes && git clone https://github.com/Fannovel16/comfyui_controlnet_aux
 RUN mkdir -p custom_nodes/comfyui_controlnet_aux/ckpts/LiheYoung/Depth-Anything/checkpoints
 RUN wget -O custom_nodes/comfyui_controlnet_aux/ckpts/LiheYoung/Depth-Anything/checkpoints/depth_anything_vitb14.pth https://huggingface.co/spaces/LiheYoung/Depth-Anything/resolve/main/checkpoints/depth_anything_vitb14.pth
 
-RUN git clone https://github.com/Acly/comfyui-tooling-nodes.git
-RUN git clone https://github.com/pythongosssss/ComfyUI-Custom-Scripts.git
+RUN cd custom_nodes && git clone https://github.com/Acly/comfyui-tooling-nodes.git
+RUN cd custom_nodes && git clone https://github.com/pythongosssss/ComfyUI-Custom-Scripts.git
+
+RUN cd custom_nodes && git clone https://github.com/ltdrdata/ComfyUI-Manager.git
+
 # Stage 3: Final image
 FROM base as final
 
@@ -98,7 +101,7 @@ ENV COMFYUI_MODEL_PATH=/comfyui/models
 COPY --from=downloader /comfyui/models /comfyui/models
 COPY --from=downloader /comfyui/custom_nodes /comfyui/custom_nodes
 
-RUN cd custom_nodes && git clone https://github.com/ltdrdata/ComfyUI-Manager.git
+
 
 # Start the container
 CMD /start.sh

@@ -78,8 +78,12 @@ RUN wget -O models/insightface/inswapper_128.onnx https://github.com/facefusion/
 RUN wget -O models/facerestore_models/GFPGANv1.4.pth https://github.com/TencentARC/GFPGAN/releases/download/v1.3.0/GFPGANv1.4.pth
 RUN echo "Done"   
 
+<<<<<<< HEAD
 #instal custom nodes  
 RUN echo "Installing custom nodes..." 
+=======
+COPY ./models/loras/SDXL /comfyui/models/loras/SDXL
+>>>>>>> 535babb (save Dockerfile)
 
 RUN cd custom_nodes && git clone https://github.com/ltdrdata/ComfyUI-Impact-Pack
 RUN cd custom_nodes && git clone https://github.com/cubiq/ComfyUI_IPAdapter_plus
@@ -97,6 +101,13 @@ RUN cd custom_nodes && git clone https://github.com/pythongosssss/ComfyUI-Custom
 RUN cd custom_nodes && git clone https://github.com/ltdrdata/ComfyUI-Manager
 RUN cd custom_nodes && git clone https://github.com/Seedsa/Fooocus_Nodes
 
+RUN cd custom_nodes && git clone https://github.com/Suzie1/ComfyUI_Comfyroll_CustomNodes
+
+RUN cd custom_nodes && git clone https://github.com/evanspearman/ComfyMath
+RUN cd custom_nodes && git clone https://github.com/rgthree/rgthree-comfy
+
+
+
 # Stage 3: Final image
 FROM base as final
 
@@ -109,6 +120,12 @@ COPY --from=downloader /comfyui/custom_nodes /comfyui/custom_nodes
 
 RUN pip uninstall -y opencv-python opencv-contrib-python opencv-python-headless
 RUN pip install opencv-python==4.7.0.72
+
+#RUN cd custom_nodes/comfyui-reactor-node && pip install -r requirements.txt
+RUN cd /comfyui/custom_nodes/comfyui-reactor-node && python3 install.py
+RUN cd /comfyui/custom_nodes/Fooocus_Nodes && pip install -r requirements.txt
+
+COPY ./input /comfyui/input
 
 # Start the container
 CMD /start.sh

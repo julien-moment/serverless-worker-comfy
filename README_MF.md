@@ -24,6 +24,7 @@ docker run --rm  --runtime=nvidia -p 8001:6970 \
 
 {
   "input": {
-    "workflow": {}
+    "workflow": __PUT_WORKFLOW_JSON_HERE__,
+    "images": []
   }
 }

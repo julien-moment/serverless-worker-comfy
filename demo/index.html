@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MF AI Photobooth serverless</title>
+    <title>MF AI Photobooth Serverless</title>
     <style>
         /* Global Styles */
         body {
@@ -30,6 +30,7 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
             width: 100%;
             max-width: 600px;
+            position: relative; /* Pour positionner la poubelle */
         }
 
         h1 {
@@ -46,7 +47,7 @@
         img,
         .loading-container {
             width: 100%;
-            max-height: 800px;
+            max-height: 480px;
             object-fit: cover;
             border-radius: 8px;
             margin-bottom: 20px;
@@ -148,7 +149,33 @@
             margin-top: 10px;
             font-size: 16px;
             color: #f1c40f; /* Couleur dorée pour la visibilité */
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
             display: none; /* Masqué par défaut */
+        }
+
+        .timing-info.show {
+            opacity: 1;
+        }
+
+        /* Styles pour l'icône de poubelle */
+        .trash-icon {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 24px;
+            color: #ff4d4d;
+            background-color: rgba(0, 0, 0, 0.5);
+            border-radius: 50%;
+            padding: 5px;
+            cursor: pointer;
+            display: none; /* Masqué par défaut */
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .trash-icon:hover {
+            background-color: rgba(255, 77, 77, 0.8);
+            color: #fff;
         }
 
         /* Responsive Styles */
@@ -174,6 +201,10 @@
 
             .timing-info {
                 font-size: 14px;
+            }
+
+            .trash-icon {
+                font-size: 20px;
             }
         }
 
@@ -201,6 +232,10 @@
             .timing-info {
                 font-size: 12px;
             }
+
+            .trash-icon {
+                font-size: 18px;
+            }
         }
     </style>
 </head>
@@ -215,14 +250,19 @@
             <div class="processing-text">Processing...</div>
             <div id="loading" class="loading"></div> <!-- Loading animation -->
         </div>
-        <img id="photo" alt="Your photo will appear here" style="display:none;" />
+        <div id="photoContainer" style="position: relative; display: none; width: 100%;">
+            <img id="photo" alt="Your photo will appear here" style="width: 100%; border-radius: 8px;" />
+            <!-- Icône de poubelle -->
+            <div id="trashIcon" class="trash-icon" title="Delete Photo">🗑️</div>
+            <button id="sendPicture" disabled>SEND TO SERVER</button>
+        </div>
         <!-- Conteneurs pour delayTime et executionTime -->
         <div id="timingInfo" class="timing-info" aria-live="polite">
             <p id="delayTime">Delay Time: </p>
             <p id="executionTime">Execution Time: </p>
         </div>
         <button id="takePicture">TAKE PICTURE</button>
-        <button id="sendPicture" disabled>SEND TO SERVER</button>
+        
     </div>
 
     <!-- Lien TEST API -->
@@ -232,6 +272,8 @@
         const video = document.getElementById('video');
         const canvas = document.getElementById('canvas');
         const photo = document.getElementById('photo');
+        const photoContainer = document.getElementById('photoContainer'); // Conteneur de la photo
+        const trashIcon = document.getElementById('trashIcon'); // Icône de poubelle
         const loadingContainer = document.getElementById('loadingContainer'); // Conteneur de chargement
         const timingInfo = document.getElementById('timingInfo'); // Conteneur pour timing
         const delayTimeElem = document.getElementById('delayTime');
@@ -253,16 +295,33 @@
         // Capturer l'image lorsque TAKE PICTURE est cliqué
         takePictureButton.addEventListener('click', () => {
             const context = canvas.getContext('2d');
-            canvas.width = 768;  // Définir la largeur et la hauteur pour le format portrait
-            canvas.height = 1024;
+            canvas.width = 480;  // Définir la largeur et la hauteur pour le format portrait
+            canvas.height = 640;
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
             const data = canvas.toDataURL('image/png');
             photo.setAttribute('src', data);  // Afficher l'image capturée
-            photo.style.display = 'block';
+            photoContainer.style.display = 'block';
+            // Masquer la vidéo et le bouton TAKE PICTURE
+            video.style.display = 'none';
+            takePictureButton.style.display = 'none';
             // Masquer les informations de timing si elles étaient affichées précédemment
             timingInfo.style.display = 'none';
             timingInfo.classList.remove('show');
             sendPictureButton.disabled = false;
+        });
+
+        // Icône de poubelle clicable pour supprimer la photo
+        trashIcon.addEventListener('click', () => {
+            // Masquer la photo et l'icône de poubelle
+            photoContainer.style.display = 'none';
+            // Réafficher la vidéo et le bouton TAKE PICTURE
+            video.style.display = 'block';
+            takePictureButton.style.display = 'block';
+            // **Réafficher le bouton SEND TO SERVER**
+            sendPictureButton.style.display = 'block';
+            // Réinitialiser les informations de timing
+            timingInfo.style.display = 'none';
+            timingInfo.classList.remove('show');
         });
 
         // Remplacer cette ligne par votre workflow JSON réel
@@ -270,74 +329,79 @@
 
         // Fonction pour envoyer la photo au serveur
         sendPictureButton.addEventListener('click', () => {
-        const dataUrl = canvas.toDataURL('image/png');
-        const base64Image = dataUrl.split(',')[1]; // Extraire la partie base64
+            const dataUrl = canvas.toDataURL('image/png');
+            const base64Image = dataUrl.split(',')[1]; // Extraire la partie base64
 
-        // Masquer la photo et afficher le conteneur de chargement
-        photo.style.display = 'none';
-        loadingContainer.style.display = 'flex'; // Afficher "Processing..." et le spinner
-        // Masquer les informations de timing pendant le traitement
-        timingInfo.style.display = 'none';
-        timingInfo.classList.remove('show');
+            // Masquer la photo et afficher le conteneur de chargement
+            photoContainer.style.display = 'none';
+            loadingContainer.style.display = 'flex'; // Afficher "Processing..." et le spinner
+            // Masquer les informations de timing pendant le traitement
+            timingInfo.style.display = 'none';
+            timingInfo.classList.remove('show');
 
-        // **Désactiver le bouton SEND TO SERVER**
-        sendPictureButton.disabled = true;
+            // **Désactiver le bouton SEND TO SERVER**
+            sendPictureButton.disabled = true;
 
-        const payload = {
-            input: {
-                workflow: multiLineWorkflow,
-                images: [{ name: "bave-pictures-3JOsg05HeB4-unsplash (1).jpg", image: base64Image }]
-            }
-        };
-
-        fetch('https://api.runpod.ai/v2/r6ejqp3mj63xkj/runsync', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer LPQ8PCDK88QLIL5WT74GX97DB9F7KA1OKY1EFDRF' // Remplacez par votre token
-            },
-            body: JSON.stringify(payload)
-        })
-            .then(response => response.json())
-            .then(data => {
-                // Masquer le conteneur de chargement et afficher l'image reçue du serveur
-                loadingContainer.style.display = 'none';
-
-                if (data && data.output && data.output.message) {
-                    photo.setAttribute('src', `data:image/png;base64,${data.output.message}`);
-                    photo.style.display = 'block';
-                } else {
-                    console.error("Format de réponse inattendu :", data);
-                    alert("Réponse inattendue du serveur.");
+            const payload = {
+                input: {
+                    workflow: multiLineWorkflow,
+                    images: [{ name: "bave-pictures-3JOsg05HeB4-unsplash (1).jpg", image: base64Image }]
                 }
+            };
 
-                // Vérifier et afficher delayTime et executionTime si présents
-                if (data) {
-                    const delayTimeMs = data.delayTime;
-                    const executionTimeMs = data.executionTime;
-
-                    if (delayTimeMs !== undefined && executionTimeMs !== undefined) {
-                        const delayTimeSec = (delayTimeMs / 1000).toFixed(2);
-                        const executionTimeSec = (executionTimeMs / 1000).toFixed(2);
-
-                        delayTimeElem.textContent = `Delay Time: ${delayTimeSec} seconds`;
-                        executionTimeElem.textContent = `Execution Time: ${executionTimeSec} seconds`;
-                        timingInfo.style.display = 'block';
-                        timingInfo.classList.add('show');
-                    }
-                }
-
-                // **Réactiver le bouton SEND TO SERVER**
-                sendPictureButton.disabled = false;
+            fetch('https://api.runpod.ai/v2/r6ejqp3mj63xkj/runsync', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer LPQ8PCDK88QLIL5WT74GX97DB9F7KA1OKY1EFDRF' // Remplacez par votre token
+                },
+                body: JSON.stringify(payload)
             })
-            .catch((error) => {
-                console.error("Erreur :", error);
-                loadingContainer.style.display = 'none'; // Masquer le chargement en cas d'erreur
-                alert("Une erreur s'est produite lors de l'envoi de la photo. Veuillez réessayer.");
+                .then(response => response.json())
+                .then(data => {
+                    // Masquer le conteneur de chargement et afficher l'image reçue du serveur
+                    loadingContainer.style.display = 'none';
 
-                // **Réactiver le bouton SEND TO SERVER même en cas d'erreur**
-                sendPictureButton.disabled = false;
-            });
+                    if (data && data.output && data.output.message) {
+                        photo.setAttribute('src', `data:image/png;base64,${data.output.message}`);
+                        photoContainer.style.display = 'block';
+                        // Masquer la vidéo et le bouton TAKE PICTURE si ce n'est pas déjà fait
+                        video.style.display = 'none';
+                        takePictureButton.style.display = 'none';
+                        // Afficher l'icône de poubelle
+                        trashIcon.style.display = 'block';
+                    } else {
+                        console.error("Format de réponse inattendu :", data);
+                        alert("Réponse inattendue du serveur.");
+                    }
+
+                    // Vérifier et afficher delayTime et executionTime si présents
+                    if (data) {
+                        const delayTimeMs = data.delayTime;
+                        const executionTimeMs = data.executionTime;
+
+                        if (delayTimeMs !== undefined && executionTimeMs !== undefined) {
+                            const delayTimeSec = (delayTimeMs / 1000).toFixed(2);
+                            const executionTimeSec = (executionTimeMs / 1000).toFixed(2);
+
+                            delayTimeElem.textContent = `Delay Time: ${delayTimeSec} seconds`;
+                            executionTimeElem.textContent = `Execution Time: ${executionTimeSec} seconds`;
+                            timingInfo.style.display = 'block';
+                            timingInfo.classList.add('show');
+                        }
+                    }
+
+                    // **Masquer le bouton SEND TO SERVER**
+                    sendPictureButton.style.display = 'none';
+                })
+                .catch((error) => {
+                    console.error("Erreur :", error);
+                    loadingContainer.style.display = 'none'; // Masquer le chargement en cas d'erreur
+                    alert("Une erreur s'est produite lors de l'envoi de la photo. Veuillez réessayer.");
+
+                    // **Réactiver le bouton SEND TO SERVER même en cas d'erreur**
+                    sendPictureButton.disabled = false;
+                });
         });
 
         // Fonction pour tester l'API avec la charge utile fournie
@@ -409,9 +473,11 @@
             };
 
             // Masquer la photo et afficher le conteneur de chargement
-            photo.style.display = 'none';
+            photoContainer.style.display = 'none';
             loadingContainer.style.display = 'flex'; // Afficher "Processing..." et le spinner
-            timingInfo.style.display = 'none'; // Masquer les informations de timing pendant le traitement
+            // Masquer les informations de timing pendant le traitement
+            timingInfo.style.display = 'none';
+            timingInfo.classList.remove('show');
 
             // **Désactiver le bouton SEND TO SERVER (optionnel, si nécessaire)**
             sendPictureButton.disabled = true;
@@ -431,7 +497,12 @@
 
                     if (data && data.output && data.output.message) {
                         photo.setAttribute('src', `data:image/png;base64,${data.output.message}`);
-                        photo.style.display = 'block';
+                        photoContainer.style.display = 'block';
+                        // Masquer la vidéo et le bouton TAKE PICTURE si ce n'est pas déjà fait
+                        video.style.display = 'none';
+                        takePictureButton.style.display = 'none';
+                        // Afficher l'icône de poubelle
+                        trashIcon.style.display = 'block';
                     } else {
                         console.error("Format de réponse inattendu :", data);
                         alert("Réponse inattendue du serveur.");
@@ -449,10 +520,11 @@
                             delayTimeElem.textContent = `Delay Time: ${delayTimeSec} seconds`;
                             executionTimeElem.textContent = `Execution Time: ${executionTimeSec} seconds`;
                             timingInfo.style.display = 'block';
+                            timingInfo.classList.add('show');
                         }
                     }
 
-                    // **Réactiver le bouton SEND TO SERVER (optionnel)**
+                    // **Réactiver le bouton SEND TO SERVER**
                     sendPictureButton.disabled = false;
                 })
                 .catch((error) => {
@@ -460,7 +532,7 @@
                     loadingContainer.style.display = 'none'; // Masquer le chargement en cas d'erreur
                     alert("Une erreur s'est produite lors du test de l'API. Veuillez réessayer.");
 
-                    // **Réactiver le bouton SEND TO SERVER même en cas d'erreur (optionnel)**
+                    // **Réactiver le bouton SEND TO SERVER même en cas d'erreur**
                     sendPictureButton.disabled = false;
                 });
         });

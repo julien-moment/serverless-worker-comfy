@@ -237,12 +237,38 @@
                 font-size: 18px;
             }
         }
+        /* Styles pour le compte à rebours */
+        .countdown {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 80px;
+            color: #FFD700;
+            background-color: rgba(0, 0, 0, 0.7);
+            border-radius: 10px;
+            padding: 20px;
+            display: none; /* Masqué par défaut */
+            z-index: 20; /* Au-dessus des autres éléments */
+        }
+
+        @media (max-width: 768px) {
+            .countdown {
+                font-size: 60px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .countdown {
+                font-size: 40px;
+            }
+        }
     </style>
 </head>
 
 <body>
     <div class="container">
-        <h1>- MF AI Photobooth -</h1>
+        <h1>- MF's HACKBOX AI Photobooth -</h1>
         <video id="video" autoplay></video>
         <canvas id="canvas" style="display: none;"></canvas>
         <!-- Conteneur pour le texte "Processing..." et l'animation de chargement -->
@@ -262,7 +288,8 @@
             <p id="executionTime">Execution Time: </p>
         </div>
         <button id="takePicture">TAKE PICTURE</button>
-        
+        <!-- Compte à rebours -->
+        <div id="countdown" class="countdown">3</div>
     </div>
 
     <!-- Lien TEST API -->
@@ -292,37 +319,63 @@
                 alert("Erreur lors de l'accès à la webcam. Veuillez vérifier vos paramètres de caméra.");
             });
 
-        // Capturer l'image lorsque TAKE PICTURE est cliqué
+        // Capturer l'image lorsque TAKE PICTURE est cliqué avec countdown
         takePictureButton.addEventListener('click', () => {
-            const context = canvas.getContext('2d');
-            canvas.width = 480;  // Définir la largeur et la hauteur pour le format portrait
-            canvas.height = 640;
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const data = canvas.toDataURL('image/png');
-            photo.setAttribute('src', data);  // Afficher l'image capturée
-            photoContainer.style.display = 'block';
-            // Masquer la vidéo et le bouton TAKE PICTURE
-            video.style.display = 'none';
-            takePictureButton.style.display = 'none';
             // Masquer les informations de timing si elles étaient affichées précédemment
             timingInfo.style.display = 'none';
             timingInfo.classList.remove('show');
-            sendPictureButton.disabled = false;
-            trashIcon.style.display = 'block';
+            // Afficher le compte à rebours
+            countdown.style.display = 'block';
+            let countdownNumber = 3;
+            countdown.textContent = countdownNumber;
+
+            // Désactiver le bouton TAKE PICTURE pendant le countdown
+            takePictureButton.style.display = 'none';
+            takePictureButton.disabled = true;
+
+            const countdownInterval = setInterval(() => {
+                countdownNumber--;
+                if (countdownNumber > 0) {
+                    countdown.textContent = countdownNumber;
+                } else {
+                    clearInterval(countdownInterval);
+                    countdown.style.display = 'none';
+                    // Capture l'image après le countdown
+                    const context = canvas.getContext('2d');
+                    canvas.width = 480; // Définir la largeur et la hauteur pour le format portrait
+                    canvas.height = 640;
+                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    const data = canvas.toDataURL('image/png');
+                    photo.setAttribute('src', data); // Afficher l'image capturée
+                    photoContainer.style.display = 'block';
+                    // Masquer la vidéo et le bouton TAKE PICTURE
+                    video.style.display = 'none';
+                    takePictureButton.style.display = 'none';
+                    // Afficher l'icône de poubelle
+                    trashIcon.style.display = 'block';
+                    // Afficher et activer le bouton SEND TO SERVER
+                    sendPictureButton.style.display = 'block';
+                    sendPictureButton.disabled = false;
+                }
+            }, 1000);
         });
 
+        // Icône de poubelle clicable pour supprimer la photo
         // Icône de poubelle clicable pour supprimer la photo
         trashIcon.addEventListener('click', () => {
             // Masquer la photo et l'icône de poubelle
             photoContainer.style.display = 'none';
+            trashIcon.style.display = 'none';
             // Réafficher la vidéo et le bouton TAKE PICTURE
             video.style.display = 'block';
             takePictureButton.style.display = 'block';
-            // **Réafficher le bouton SEND TO SERVER**
-            sendPictureButton.style.display = 'block';
+            takePictureButton.disabled = false;
             // Réinitialiser les informations de timing
             timingInfo.style.display = 'none';
             timingInfo.classList.remove('show');
+            // Masquer le bouton SEND TO SERVER
+            sendPictureButton.style.display = 'block';
+            sendPictureButton.disabled = true;
         });
 
         // Remplacer cette ligne par votre workflow JSON réel
@@ -429,7 +482,7 @@
                         },
                         "4": {
                             "inputs": {
-                                "ckpt_name": "sd_xl_base_1.0.safetensors"
+                                "ckpt_name": "SDXL/Lightning/dreamshaperXL_lightningDPMSDE.safetensors"
                             },
                             "class_type": "CheckpointLoaderSimple"
                         },
@@ -483,7 +536,7 @@
             // **Désactiver le bouton SEND TO SERVER (optionnel, si nécessaire)**
             sendPictureButton.disabled = true;
 
-            fetch('https://api.runpod.ai/v2/ad8iul52hfnzcc/runsync', {
+            fetch('https://api.runpod.ai/v2/r6ejqp3mj63xkj/runsync', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

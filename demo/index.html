@@ -47,7 +47,7 @@
         img,
         .loading-container {
             width: 100%;
-            max-height: 480px;
+            max-height: 1024px;
             object-fit: cover;
             border-radius: 8px;
             margin-bottom: 20px;
@@ -217,7 +217,7 @@
             canvas,
             img,
             .loading-container {
-                max-height: 300px;
+/*                max-height: 300px;*/
             }
 
             button {
@@ -342,8 +342,8 @@
                     countdown.style.display = 'none';
                     // Capture l'image après le countdown
                     const context = canvas.getContext('2d');
-                    canvas.width = 480; // Définir la largeur et la hauteur pour le format portrait
-                    canvas.height = 640;
+                    canvas.width = 768; // Définir la largeur et la hauteur pour le format portrait
+                    canvas.height = 1024;
                     context.drawImage(video, 0, 0, canvas.width, canvas.height);
                     const data = canvas.toDataURL('image/png');
                     photo.setAttribute('src', data); // Afficher l'image capturée
